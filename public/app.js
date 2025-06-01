@@ -47,7 +47,7 @@ async function sendMessage() {
     }
 
     let reply = cleanDeepSeekReply(data.reply);
-
+    console.log(reply);
     // Normalize whitespace/newlines
     reply = reply.trim().replace(/\n{2,}/g, "\n");
 
