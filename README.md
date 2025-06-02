@@ -47,7 +47,7 @@ npm run dev
 ```
 Visit http://localhost:3000 and enjoy being insulted by your new AI roommate.
 
-✝️ Authorship
+## ✝️ Authorship
 Written with divine inspiration and GitHub Copilot’s distant cousin (ChatGPT).
 
 Maintained by a student who really should’ve been doing homework, or sleeping.
