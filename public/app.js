@@ -1,12 +1,3 @@
-function autoLinkURLs(text) {
-  // Convert plain URLs to clickable links if not already markdown links
-  const urlRegex = /(https?:\/\/[^\s<>"'`.,;!)\]]+)/g;
-
-  return text.replace(urlRegex, (url) => {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-  });
-}
-
 async function sendMessage() {
   const input = document.getElementById("user-input");
   const message = input.value.trim();
@@ -18,8 +9,31 @@ async function sendMessage() {
   chat.scrollTop = chat.scrollHeight;
   input.disabled = true;
 
+  const loader = document.createElement("p");
+  loader.id = "loading-indicator";
+  loader.innerHTML = `<strong class="speaker-deepseek">Chat-DVB:</strong> <span class="loading-dots">Thinking</span>`;
+  chat.appendChild(loader);
+  chat.scrollTop = chat.scrollHeight;
+
+  let dotCount = 0;
+  const loadingInterval = setInterval(() => {
+    dotCount = (dotCount + 1) % 4;
+    const span = loader.querySelector(".loading-dots");
+    if (span) span.textContent = "Thinking" + ".".repeat(dotCount);
+    chat.scrollTop = chat.scrollHeight;
+  }, 500);
+
   function cleanDeepSeekReply(text) {
     return text.replace(/<think>.*?<\/think>\n?/gs, "");
+  }
+
+  function autoLinkURLs(text) {
+    const urlRegex = /(https?:\/\/[^\s<>"]+)(?![^<>]*>|[^<>]*<\/a>)/g;
+    return text.replace(
+      urlRegex,
+      (url) =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+    );
   }
 
   function formatBoldAndLists(text) {
@@ -38,6 +52,8 @@ async function sendMessage() {
     const data = await res.json();
 
     if (!res.ok) {
+      clearInterval(loadingInterval);
+      loader.remove();
       chat.innerHTML += `<p><strong>Error:</strong> ${
         data.error || "Something went wrong!"
       }</p>`;
@@ -47,37 +63,33 @@ async function sendMessage() {
     }
 
     let reply = cleanDeepSeekReply(data.reply);
-    console.log(reply);
-    // Normalize whitespace/newlines
     reply = reply.trim().replace(/\n{2,}/g, "\n");
 
-    // Format bold and numbered lists
     reply = formatBoldAndLists(reply);
 
-    // Replace markdown links with <a>
     reply = reply.replace(
       /\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
       (_, text, url) =>
         `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`
     );
 
-    // Replace inline code marked with backticks with <code>
-    // To avoid interference, do this AFTER markdown links
     reply = reply.replace(/`([^`\n]+)`/g, (_, code) => `<code>${code}</code>`);
 
-    // Replace plain URLs not already linked
     reply = autoLinkURLs(reply);
 
-    // Replace newlines with <br>
     reply = reply.replace(/\n/g, "<br>");
 
-    chat.innerHTML += `<p><strong class="speaker-deepseek">Chat-DVB:</strong> ${reply}</p>`;
+    clearInterval(loadingInterval);
+    loader.remove();
 
+    chat.innerHTML += `<p><strong class="speaker-deepseek">Chat-DVB:</strong> ${reply}</p>`;
     chat.scrollTop = chat.scrollHeight;
   } catch (error) {
+    clearInterval(loadingInterval);
+    loader.remove();
     chat.innerHTML += `<p><strong>Error:</strong> ${error.message}</p>`;
+  } finally {
+    input.disabled = false;
+    input.focus();
   }
-
-  input.disabled = false;
-  input.focus();
 }
